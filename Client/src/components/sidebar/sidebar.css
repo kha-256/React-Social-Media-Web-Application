@@ -35,6 +35,15 @@
     margin-bottom: 20px;
 }
 
+.sidebarLogout{
+    cursor: pointer;
+    color: #e74c3c;
+}
+
+.sidebarLogout:hover{
+    opacity: 0.8;
+}
+
 .sidebarIcon{
     margin-right: 15px;
 }

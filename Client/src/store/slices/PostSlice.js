@@ -1,53 +1,63 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios from "axios";
-import { json } from "react-router-dom";
+import { Posts, Users } from "../../dummyData";
 
-let initialState = {
-    posts: [],
-    loading: false,
-    error: null,
-}
+const initialState = {
+  posts: [],
+  loading: false,
+  error: null,
+};
 
-//funtion to call get post api
+export const getTimelinePost = createAsyncThunk("post/timeline", async () => {
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  return Posts;
+});
 
-export const getTimelinePost = createAsyncThunk(
-    'userPost',
-    async (userId) => {
-        try {
-            const response = await axios.get(`http://127.0.0.1:8800/api/posts/timeline/${userId}`)
-            return response.data;
-        } catch (error) {
-            // Handle errors if needed
-            throw error;
-        }
-    }
-)
+export const getProfilePosts = createAsyncThunk("post/profile", async (username) => {
+  await new Promise((resolve) => setTimeout(resolve, 200));
 
+  const user = Users.find((u) => u.username === username);
+  if (!user) return [];
 
-const PostSlice= createSlice({
-    name: 'Post',
-    initialState,
-    reducers:{
-    
-    }, 
-    extraReducers:(builder)=>{
-        builder
-        .addCase(getTimelinePost.pending,(state,action)=>{
-            state.loading=true;
-            state.posts=null;
-            state.error=null
-        })
-        .addCase(getTimelinePost.fulfilled,(state,action)=>{
-            state.loading=false;
-            state.posts=action.payload;
-            state.error=null;
-        })
-        .addCase(getTimelinePost.rejected,(state,action)=>{
-            state.loading=false;
-            state.posts=null;
-            state.error=action.error.message
-        })
-    }
-}) 
+  return Posts.filter((post) => post.userId === user.id);
+});
+
+const PostSlice = createSlice({
+  name: "post",
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(getTimelinePost.pending, (state) => {
+        state.loading = true;
+        state.posts = [];
+        state.error = null;
+      })
+      .addCase(getTimelinePost.fulfilled, (state, action) => {
+        state.loading = false;
+        state.posts = action.payload;
+        state.error = null;
+      })
+      .addCase(getTimelinePost.rejected, (state, action) => {
+        state.loading = false;
+        state.posts = [];
+        state.error = action.error.message;
+      })
+      .addCase(getProfilePosts.pending, (state) => {
+        state.loading = true;
+        state.posts = [];
+        state.error = null;
+      })
+      .addCase(getProfilePosts.fulfilled, (state, action) => {
+        state.loading = false;
+        state.posts = action.payload;
+        state.error = null;
+      })
+      .addCase(getProfilePosts.rejected, (state, action) => {
+        state.loading = false;
+        state.posts = [];
+        state.error = action.error.message;
+      });
+  },
+});
 
 export default PostSlice.reducer;

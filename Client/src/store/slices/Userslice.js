@@ -1,114 +1,116 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios from "axios";
-import { json } from "react-router-dom";
+import { Users } from "../../dummyData";
 
-let initialState = {
-  user: "",
-  token: "",
+const initialState = {
+  user: null,
+  token: null,
+  registeredUsers: [],
   loading: false,
-  error: null
+  error: null,
 };
 
+const findUserByCredentials = (email, password, registeredUsers) => {
+  const allUsers = [...Users, ...registeredUsers];
+  return allUsers.find((u) => u.email === email && u.password === password);
+};
 
-//funtion to call user login api
-export const userLogin = createAsyncThunk(
-  'user/login',
-  async (body) => {
-    try {
-      const response = await axios.post("http://127.0.0.1:8800/api/auth/login", body, {
-        headers: {
-          Authorization: localStorage.getItem('token')
-        }
-      });
-      return response.data;
-    } catch (error) {
-      // Handle errors if needed
-      throw error;
-    }
+const toAuthUser = (user) => ({
+  _id: user.id,
+  username: user.username,
+  email: user.email,
+  profilePicture: user.profilePicture,
+});
+
+export const userLogin = createAsyncThunk("user/login", async (body, { getState }) => {
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  const { email, password } = body;
+  const found = findUserByCredentials(email, password, getState().user.registeredUsers);
+
+  if (!found) {
+    throw new Error("Invalid credentials");
   }
-);
 
+  return {
+    user: toAuthUser(found),
+    token: `mock-token-${found.id}`,
+  };
+});
 
-//funtion to call user signUp/register api
+export const userSignUp = createAsyncThunk("user/signup", async (body, { getState }) => {
+  await new Promise((resolve) => setTimeout(resolve, 300));
 
-export const userSignUp = createAsyncThunk(
-  'user/signup',
-  async (body) => {
-    try {
-      const response = await axios.post('http://127.0.0.1:8800/api/auth/register', body)
-      return response.data
-    } catch (error) {
-      throw error;
-    }
+  const { userName, email, password } = body;
+  const allUsers = [...Users, ...getState().user.registeredUsers];
+
+  if (allUsers.some((u) => u.email === email)) {
+    throw new Error("Email already exists");
   }
-)
 
+  return {
+    id: Date.now(),
+    username: userName,
+    email,
+    password,
+    profilePicture: "person/1.jpeg",
+  };
+});
 
 const UserSlice = createSlice({
-  name: 'user',
+  name: "user",
   initialState,
   reducers: {
-    addToken: (state, action) => {
-      state.token = localStorage.getItem("token")
+    hydrateAuth: (state) => {
+      const storedUser = localStorage.getItem("user");
+      const storedToken = localStorage.getItem("token");
+
+      if (storedUser && storedToken) {
+        state.user = JSON.parse(storedUser);
+        state.token = JSON.parse(storedToken);
+      }
     },
-    addUser: (state, action) => {
-      state.user = localStorage.getItem("user")
-    }
+    logout: (state) => {
+      state.user = null;
+      state.token = null;
+      state.error = null;
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+    },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(userLogin.pending, (state, action) => {
+      .addCase(userLogin.pending, (state) => {
         state.loading = true;
-        state.user = null;
         state.error = null;
-
       })
       .addCase(userLogin.fulfilled, (state, action) => {
         state.loading = false;
-        //console.log("API Response:", action.payload); // Add this line to log the entire API response
         const { user, token } = action.payload;
-        //console.log("Token received from API:", token); // Add this line to log the token value
-        state.error = null;
-        state.token = token;
         state.user = user;
+        state.token = token;
+        state.error = null;
         localStorage.setItem("token", JSON.stringify(token));
         localStorage.setItem("user", JSON.stringify(user));
       })
       .addCase(userLogin.rejected, (state, action) => {
         state.loading = false;
-        //console.log(action.error.message);
-        if (action.error.message === "Request failed with status code 404") {
-          state.error = "Access Denied!  Invalid Credentials"
-          //console.log(state.error);
-        } else if (action.error.message === "Request failed with status code 400") {
-          state.error = "Incorrect Password"
-         // console.log(state.error);
-        }
-        else {
-          state.error = action.error.message;
-        }
-
+        state.error = action.error.message || "Login failed";
       })
-      .addCase(userSignUp.pending, (state,action)=>{
-        state.loading= true;
-        state.user=null;
-        state.error=null
+      .addCase(userSignUp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
-      .addCase(userSignUp.fulfilled,(state, action)=>{
-        state.loading=false;
-        console.log("Signup API Response:", action.payload);
-        state.user= action.payload;
-        state.error=null
+      .addCase(userSignUp.fulfilled, (state, action) => {
+        state.loading = false;
+        state.registeredUsers.push(action.payload);
+        state.error = null;
       })
-      .addCase(userSignUp.rejected,(state,action)=>{
-        state.loading=false;
-        state.error = action.error.message;
-      })
-     
-  }
+      .addCase(userSignUp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Signup failed";
+      });
+  },
+});
 
-})
-
-
-export const { addUser, addToken } = UserSlice.actions
+export const { hydrateAuth, logout } = UserSlice.actions;
 export default UserSlice.reducer;

@@ -1,29 +1,32 @@
-import React from "react";
+import { useEffect } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import Home from "./pages/home/Home";
 import Profile from "./pages/profile/Profile";
 import Login from "./pages/login/Login";
 import Register from "./pages/Register/Register";
-import { Routes,Route ,} from 'react-router-dom';
-import { Provider } from "react";
-import { Navigate } from "react-router-dom";
+import { hydrateAuth } from "./store/slices/Userslice";
 
-
+function ProtectedRoute({ children }) {
+  const { user, token } = useSelector((state) => state.user);
+  return user && token ? children : <Navigate to="/" replace />;
+}
 
 function App() {
-  const user = localStorage.getItem('user');
-  const token = localStorage.getItem('token');
+  const dispatch = useDispatch();
+  const { user, token } = useSelector((state) => state.user);
+
+  useEffect(() => {
+    dispatch(hydrateAuth());
+  }, [dispatch]);
 
   return (
-<Routes>
-  <Route  path="/" element={user && token ? <Navigate to="/home" /> : <Login />}  />
-  <Route  path="/register" element={<Register/>} />
-  <Route path="/home" element={<Home />} />
-<Route path="/profile/:username" element={<Profile />} />
-
-
-
-</Routes>
-
+    <Routes>
+      <Route path="/" element={user && token ? <Navigate to="/home" replace /> : <Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+      <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+    </Routes>
   );
 }
 
