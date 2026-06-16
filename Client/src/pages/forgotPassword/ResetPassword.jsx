@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { Formik, Form, useField } from "formik";
 import * as Yup from "yup";
-import { userSignUp } from "../../store/slices/Userslice";
-import { useDispatch, useSelector } from "react-redux";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -14,12 +12,7 @@ import ArrowBackIosNew from "@mui/icons-material/ArrowBackIosNew";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
-const registerSchema = Yup.object({
-  firstName: Yup.string().required("First name is required"),
-  lastName: Yup.string().required("Last name is required"),
-  email: Yup.string()
-    .email("Please enter a valid email")
-    .required("Email is required"),
+const resetSchema = Yup.object({
   password: Yup.string()
     .min(6, "Password must be at least 6 characters")
     .required("Password is required"),
@@ -29,14 +22,11 @@ const registerSchema = Yup.object({
 });
 
 const initialValues = {
-  firstName: "",
-  lastName: "",
-  email: "",
   password: "",
   confirmPassword: "",
 };
 
-const registerSx = {
+const pageSx = {
   minHeight: "100vh",
   width: "100%",
   bgcolor: "#fff",
@@ -47,18 +37,17 @@ const registerSx = {
   overflowY: "auto",
 };
 
-const registerContainerSx = {
+const containerSx = {
   width: "100%",
   maxWidth: 600,
   px: { xs: "20px", sm: "32px" },
   pt: { xs: "12px", sm: "24px" },
   pb: { xs: "40px", sm: "48px" },
   boxSizing: "border-box",
- 
 };
 
-const registerBackIconSx = {
-  mt:3,
+const backIconSx = {
+  mt: 3,
   ml: -1,
   mb: 2,
   width: 40,
@@ -75,16 +64,16 @@ const registerBackIconSx = {
   },
 };
 
-const registerTitleSx = {
+const titleSx = {
   fontFamily: '"Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif',
-  fontSize: {md:'22px', sm:'22px', xs:"22px"},
+  fontSize: "22px",
   fontWeight: 500,
   lineHeight: 1.2,
   color: "#1c1e21",
   mb: 0.5,
 };
 
-const registerSubtitleSx = {
+const subtitleSx = {
   fontFamily: '"Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif',
   fontSize: "0.9375rem",
   fontWeight: 400,
@@ -93,7 +82,7 @@ const registerSubtitleSx = {
   mb: 3.5,
 };
 
-const registerFormSx = {
+const formSx = {
   width: "100%",
 };
 
@@ -104,13 +93,9 @@ const fieldLabelSx = {
   lineHeight: 1.3,
 };
 
-const helperTextSx = {
-  fontSize: "0.8125rem",
-  color: "#65676b",
-  lineHeight: 1.4,
-};
-
 const textFieldSx = {
+  width: "100%",
+  minWidth: 0,
   "& .MuiOutlinedInput-root": {
     borderRadius: "12px",
     backgroundColor: "#fff",
@@ -144,19 +129,7 @@ const textFieldSx = {
   },
 };
 
-const registerErrorSx = {
-  color: "#d32f2f",
-  fontSize: "0.875rem",
-  lineHeight: 1.4,
-};
-
-const registerTermsSx = {
-  fontSize: "0.8125rem",
-  color: "#65676b",
-  lineHeight: 1.45,
-};
-
-const registerSubmitButtonSx = {
+const submitButtonSx = {
   width: "100%",
   // minHeight: 48,
   py: 1.5,
@@ -178,24 +151,7 @@ const registerSubmitButtonSx = {
   },
 };
 
-const registerLoginLinkSx = {
-  width: "100%",
-  py: 1.5,
-  px: 2,
-  border: "none",
-  borderRadius: "24px",
-  bgcolor: "transparent",
-  color: "#1877f2",
-  fontSize: "1rem",
-  fontWeight: 400,
-  cursor: "pointer",
-  textAlign: "center",
-  "&:hover": {
-    bgcolor: "rgba(24, 119, 242, 0.08)",
-  },
-};
-
-function RegisterTextField({ name, ...props }) {
+function ResetTextField({ name, ...props }) {
   const [field, meta] = useField(name);
   const showError = meta.touched && Boolean(meta.error);
 
@@ -211,97 +167,67 @@ function RegisterTextField({ name, ...props }) {
   );
 }
 
-export default function Register() {
+export default function ResetPassword() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { loading, error } = useSelector((state) => state.user);
+  const location = useLocation();
+  const identifier = location.state?.identifier;
+
+  if (!identifier) {
+    return <Navigate to="/forgot-password" replace />;
+  }
 
   const handleSubmit = async (values, { resetForm }) => {
-    const userName = `${values.firstName} ${values.lastName}`.trim();
-    const response = await dispatch(
-      userSignUp({
-        userName,
-        email: values.email,
-        password: values.password,
-        confirmPassword: values.confirmPassword,
-      })
-    );
-
-    if (!response.error) {
-      resetForm();
-      navigate("/");
-    }
+    setLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    setLoading(false);
+    resetForm();
+    navigate("/", {
+      state: {
+        message: "Your password has been changed. You can log in now.",
+      },
+    });
   };
 
   return (
-    <Box sx={registerSx}>
-      <Box sx={registerContainerSx}>
+    <Box sx={pageSx}>
+      <Box sx={containerSx}>
         <IconButton
           size="small"
-          sx={registerBackIconSx}
-          onClick={() => navigate("/")}
-          aria-label="Go back to log in"
+          sx={backIconSx}
+          onClick={() =>
+            navigate("/forgot-password/verify", { state: { identifier } })
+          }
+          aria-label="Go back"
         >
           <ArrowBackIosNew fontSize="inherit" />
         </IconButton>
 
-        <Typography component="h1" sx={registerTitleSx}>
-          Get started on Kinnect
+        <Typography component="h1" sx={titleSx}>
+          Change your password
         </Typography>
 
-        <Typography sx={registerSubtitleSx}>
-          Create an account to connect with friends, family and communities of
-          people who share your interests.
+        <Typography sx={subtitleSx}>
+          Create a new password for {identifier}.
         </Typography>
 
         <Formik
           initialValues={initialValues}
-          validationSchema={registerSchema}
+          validationSchema={resetSchema}
           onSubmit={handleSubmit}
         >
           {({ isSubmitting }) => (
-            <Box component={Form} sx={registerFormSx}>
+            <Box component={Form} sx={formSx}>
               <Stack spacing={2.5}>
                 <Stack spacing={0.75}>
-                  <Typography sx={fieldLabelSx}>Name</Typography>
-                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                    <RegisterTextField
-                      name="firstName"
-                      placeholder="First name"
-                      autoComplete="given-name"
-                    />
-                    <RegisterTextField
-                      name="lastName"
-                      placeholder="Last name"
-                      autoComplete="family-name"
-                    />
-                  </Stack>
-                </Stack>
-
-                <Stack spacing={0.75}>
-                  <Typography sx={fieldLabelSx}>
-                    Mobile number or email address
-                  </Typography>
-                  <RegisterTextField
-                    name="email"
-                    type="email"
-                    placeholder="Mobile number or email address"
-                    autoComplete="email"
-                  />
-                  <Typography sx={helperTextSx}>
-                    You may receive notifications from us.
-                  </Typography>
-                </Stack>
-
-                <Stack spacing={0.75}>
-                  <Typography sx={fieldLabelSx}>Password</Typography>
-                  <RegisterTextField
+                  <Typography sx={fieldLabelSx}>New password</Typography>
+                  <ResetTextField
                     name="password"
                     type={passwordVisible ? "text" : "password"}
-                    placeholder="Password"
+                    placeholder="New password"
                     autoComplete="new-password"
                     InputProps={{
                       endAdornment: (
@@ -327,11 +253,11 @@ export default function Register() {
                 </Stack>
 
                 <Stack spacing={0.75}>
-                  <Typography sx={fieldLabelSx}>Confirm password</Typography>
-                  <RegisterTextField
+                  <Typography sx={fieldLabelSx}>Confirm new password</Typography>
+                  <ResetTextField
                     name="confirmPassword"
                     type={confirmPasswordVisible ? "text" : "password"}
-                    placeholder="Confirm password"
+                    placeholder="Confirm new password"
                     autoComplete="new-password"
                     InputProps={{
                       endAdornment: (
@@ -360,31 +286,15 @@ export default function Register() {
                   />
                 </Stack>
 
-                {error && (
-                  <Typography sx={registerErrorSx}>{error}</Typography>
-                )}
-
-                <Typography sx={registerTermsSx}>
-                  By tapping Submit, you agree to create an account and to
-                  Kinnect&apos;s Terms and Privacy Policy.
-                </Typography>
-
-                <Box
-                  component="button"
-                  type="submit"
-                  disabled={loading || isSubmitting}
-                  sx={registerSubmitButtonSx}
-                >
-                  {loading || isSubmitting ? "Loading" : "Submit"}
-                </Box>
-
-                <Box
-                  component="button"
-                  type="button"
-                  onClick={() => navigate("/")}
-                  sx={registerLoginLinkSx}
-                >
-                  I already have an account
+                <Box sx={{ pt: 2 }}>
+                  <Box
+                    component="button"
+                    type="submit"
+                    disabled={loading || isSubmitting}
+                    sx={submitButtonSx}
+                  >
+                    {loading || isSubmitting ? "Loading" : "Continue"}
+                  </Box>
                 </Box>
               </Stack>
             </Box>

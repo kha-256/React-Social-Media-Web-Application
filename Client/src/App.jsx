@@ -5,6 +5,9 @@ import Home from "./pages/home/Home";
 import Profile from "./pages/profile/Profile";
 import Login from "./pages/login/Login";
 import Register from "./pages/Register/Register";
+import ForgotPassword from "./pages/forgotPassword/ForgotPassword";
+import VerifyCode from "./pages/forgotPassword/VerifyCode";
+import ResetPassword from "./pages/forgotPassword/ResetPassword";
 import { hydrateAuth } from "./store/slices/Userslice";
 
 function ProtectedRoute({ children }) {
@@ -24,6 +27,9 @@ function App() {
     <Routes>
       <Route path="/" element={user && token ? <Navigate to="/home" replace /> : <Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/forgot-password/verify" element={<VerifyCode />} />
+      <Route path="/forgot-password/reset" element={<ResetPassword />} />
       <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
     </Routes>
